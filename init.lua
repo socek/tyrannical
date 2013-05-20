@@ -227,6 +227,41 @@ awful.tag.swap = function(tag1,tag2)
     awful.tag.move(idx2,tag1)
 end
 
+function table.isEmpty (self)
+    for _, _ in pairs(self) do
+        return false
+    end
+    return true
+end
+
+function createTag(tag)
+    function createTagOnScreen(tag, screen_number)
+        tag.instances[screen_number] = awful.tag.add(tag.name, tag)
+    end
+    local stype = type(tag.screen)
+    if stype == "table" then
+        for key, screen_number in pairs(tag.screen) do
+            if screen_number <= capi.screen.count() then
+                tag.screen = screen_number
+                createTagOnScreen(tag, screen_number)
+            end
+        end
+    elseif (tag.screen or 1) <= capi.screen.count() then
+        createTagOnScreen(tag, tag.screen or 1)
+    end
+end
+
+function showTag(tag_name)
+    local tag = tyrannical.tags_by_name[tag_name]
+    if table.isEmpty(tag["instances"]) then
+        createTag(tag)
+    end
+    for key, tag_instance in pairs(tag.instances) do
+        awful.tag.viewonly(tag_instance)
+    end
+    return tag
+end
+
 --------------------------OBJECT GEARS---------------------------
 local properties = {}
 setmetatable(properties, {__newindex = function(table,k,v) load_property(k,v) end})
@@ -236,6 +271,8 @@ local function getter (table, key)
         return properties
     elseif key == "tags_by_name" then
         return tags_hash
+    elseif key == "showTag" then
+        return showTag
     end
 end
 local function setter (table, key,value)
